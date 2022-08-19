@@ -16,26 +16,30 @@ function App() {
 
   //Instatiate and populate board with empty cells
   useEffect(() => {
-    // Create an array with 9 arrays in it
+    // Raw data for the board
     const rows = [[], [], [], [], [], [], [], [], []];
     const cols = [[], [], [], [], [], [], [], [], []];
     const squares = [[], [], [], [], [], [], [], [], []];
-    // Create 81 cells into an array
+
+    // Create all 81 cells
     for (let x = 0; x < 9; x++) {
       for (let y = 0; y < 9; y++) {
         const initialVal = easy[x][y];
+
         const index = x * 9 + y;
         const sqIndex =
           Math.floor((index % 9) / 3) + 3 * Math.floor(index / 27);
+
         const newCell = new cell(y, x, y, x, sqIndex);
         rows[y].push(newCell);
         cols[x].push(newCell);
         squares[sqIndex].push(newCell);
+
         newCell.setValue(initialVal);
       }
     }
 
-    // Create 9 rows from the relevant cells
+    // Create rows, columns, and square instances
     const rowRefs = [];
     const colRefs = [];
     const sqRefs = [];
@@ -47,18 +51,19 @@ function App() {
 
     // Create a new board from the above data
     const newBoard = new board(rowRefs, colRefs, sqRefs);
-    // propogate update for all cells
+
     newBoard.rows.forEach((row) => {
       row.cells.forEach((cell) => {
         newBoard.propagateUpdates(cell, cell.value);
       });
     });
 
-    // Update possible values for all cells
-
     setCurrentBoard(newBoard);
   }, []);
 
+  /**
+   * Recursive function to solve the soduku
+   */
   function iterate() {
     let iterationBoard = currentBoard.getBoardClone();
     if (iterationBoard.isBoardComplete()) {
