@@ -1,402 +1,129 @@
+/**
+ * Copyright Chamber Designs 2022 - All Rights Reserved
+ */
+
 import "./App.css";
 import { useEffect, useState } from "react";
-import SudokuCard from "./Components/SudokuCard";
 import { Card, CardContent, CardHeader } from "@mui/material";
+import { cell, row, column, square } from "./Classes/Cell";
+import { board } from "./Classes/Board";
+import { StateStack } from "./Classes/StateStack";
+import { easy } from "./SodukuPuzzles";
 
 function App() {
   const [currentBoard, setCurrentBoard] = useState(null);
-  const [setupStarted, setSetupStarted] = useState(false);
+  const [currentStateStack, setCurrentStateStack] = useState(new StateStack());
 
-  // array with 9 colours in it
-  const colours = [
-    "red",
-    "blue",
-    "green",
-    "yellow",
-    "orange",
-    "purple",
-    "pink",
-    "brown",
-    "black",
-  ];
-  class cell {
-    constructor(x, y, value) {
-      this.cellRef = { x, y };
-      this.entropy = 9;
-      this.x = x;
-      this.y = y;
-      this.value = value;
-      this.possibleValues = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-      this.backgroundColor = "white";
-    }
-
-    removePossibleValue(value) {
-      this.possibleValues = this.possibleValues.filter(
-        (possibleValue) => possibleValue !== value
-      );
-      this.entropy = this.possibleValues.length;
-    }
-
-    setValue(value) {
-      this.value = value;
-      this.possibleValues = [];
-      this.entropy = 0;
-    }
-
-    getEntropy() {
-      return this.entropy;
-    }
-  }
-
-  class cellGroup {
-    constructor(cells) {
-      this.cells = cells;
-    }
-
-    isCellInGroup(cell) {
-      return this.cells.includes(cell);
-    }
-
-    getCells() {
-      return this.cells;
-    }
-  }
-
-  class row extends cellGroup {
-    constructor(cells) {
-      super(cells);
-    }
-  }
-
-  class column extends cellGroup {
-    constructor(cells) {
-      super(cells);
-    }
-  }
-
-  class square extends cellGroup {
-    constructor(cells) {
-      super(cells);
-    }
-  }
-
-  class board {
-    constructor(rows, columns, squares) {
-      this.rows = rows;
-      this.columns = columns;
-      this.squares = squares;
-    }
-
-    getCell(x, y) {
-      return this.rows[x].cells[y];
-    }
-
-    getLowestEntropyCell() {
-      let lowestEntropyCell = null;
-      let lowestEntropy = 100; // arbitrary high number
-      this.rows.forEach((row) => {
-        row.cells.forEach((cell) => {
-          const entropy = cell.getEntropy();
-          if (entropy > 0 && entropy < lowestEntropy) {
-            lowestEntropy = entropy;
-            lowestEntropyCell = cell;
-          }
-        });
-      });
-      return lowestEntropyCell;
-    }
-
-    isBoardComplete() {
-      let isComplete = true;
-      this.rows.forEach((row) => {
-        row.cells.forEach((cell) => {
-          if (cell.value === 0) {
-            isComplete = false;
-          }
-        });
-      });
-      return isComplete;
-    }
-
-    saveCurrentState() {
-      const newState = new board(this.rows, this.columns, this.squares);
-      setCurrentBoard(newState);
-    }
-
-    getCurrentStateAsBoard() {
-      return this;
-    }
-
-    printBoardToConsoleByRow() {
-      this.rows.forEach((row) => {
-        let rowOutput = "";
-        row.cells.forEach((cell) => {
-          rowOutput += cell.value;
-        });
-        console.log(rowOutput);
-      });
-    }
-
-    printBoardEntropiesToConsoleByRow() {
-      this.rows.forEach((row) => {
-        let rowOutput = "";
-        row.cells.forEach((cell) => {
-          rowOutput += cell.possibleValues.length;
-        });
-        console.log(rowOutput);
-      });
-    }
-
-    convertBoardToJSON() {
-      let boardJSON = {};
-      this.rows.forEach((row) => {
-        let rowOutput = "";
-        row.cells.forEach((cell) => {
-          rowOutput += cell.value;
-        });
-        boardJSON[row.x] = rowOutput;
-      });
-      return boardJSON;
-    }
-
-    getAllCellsWithLowestEntropy() {
-      const lowestEntropyCell = this.getLowestEntropyCell();
-      let cellsWithLowestEntropy = [];
-      if (lowestEntropyCell) {
-        const lowestEntropy = lowestEntropyCell.getEntropy();
-        if (lowestEntropy !== 0) {
-          this.rows.forEach((row) => {
-            row.cells.forEach((cell) => {
-              if (cell.getEntropy() === lowestEntropy) {
-                cellsWithLowestEntropy.push(cell);
-              }
-            });
-          });
-        }
-      }
-
-      return cellsWithLowestEntropy;
-    }
-
-    getAllCellsWithEntropyOf1() {
-      let cellsWithEntropyOf1 = [];
-      this.rows.forEach((row) => {
-        row.cells.forEach((cell) => {
-          if (cell.getEntropy() === 1) {
-            console.log(cell);
-
-            console.log(
-              "cell has entropy: ",
-              cell.getEntropy(),
-              " at position: ",
-              cell.x,
-              cell.y
-            );
-            cellsWithEntropyOf1.push(cell);
-          }
-        });
-      });
-      return cellsWithEntropyOf1;
-    }
-
-    clearAllPreservedCells() {
-      this.rows.forEach((row) => {
-        row.cells.forEach((cell) => {
-          cell.isPreserved = false;
-        });
-      });
-    }
-  }
-
-  function generateZerosBoard() {
-    const rows = [];
-    const columns = [];
-    const squares = [];
-    const cells = [];
-    for (let i = 0; i < 9; i++) {
-      rows.push([]);
-      columns.push([]);
-      squares.push([]);
-    }
-    for (let i = 0; i < 9; i++) {
-      for (let j = 0; j < 9; j++) {
-        cells.push(new cell(i, j, 0));
-      }
-    }
-
-    for (let i = 0; i < 9; i++) {
-      // populate rows with cells with the same y coordinate
-      rows[i] = new row(cells.filter((cell) => cell.y === i));
-    }
-
-    for (let i = 0; i < 9; i++) {
-      // populate columns with cells with the same x coordinate
-      columns[i] = new column(cells.filter((cell) => cell.x === i));
-    }
-
-    // columns.forEach((column) => {
-    //   const index = column.cells[0].x;
-    //   column.cells.forEach((cell) => {
-    //     cell.backgroundColor = colours[index];
-    //   });
-    // });
-
-    // rows.forEach((row) => {
-    //   const index = row.cells[0].y;
-    //   row.cells.forEach((cell) => {
-    //     cell.backgroundColor = colours[index];
-    //   });
-    // });
-
-    // populate squares with cells in 9 groups of 3x3
-    for (let i = 0; i < 3; i++) {
-      for (let j = 0; j < 3; j++) {
-        const index = i * 3 + j;
-        squares[index] = new square(
-          cells.filter(
-            (cell) =>
-              cell.x >= j * 3 &&
-              cell.x < j * 3 + 3 &&
-              cell.y >= i * 3 &&
-              cell.y < i * 3 + 3
-          )
-        );
-        // squares[index].cells.forEach((cell) => {
-        //   cell.backgroundColor = colours[index];
-        // });
-      }
-    }
-
-    const zerosBoard = new board(rows, columns, squares);
-    return zerosBoard;
-  }
-
-  function propagateUpdate(cell, val) {
-    cell.setValue(val);
-
-    const row = cell.y;
-    const column = cell.x;
-    const square = Math.floor(cell.x / 3) + Math.floor(cell.y / 3) * 3;
-    console.log("sq", square);
-
-    const rowCells = currentBoard.rows[row].cells;
-    const columnCells = currentBoard.columns[column].cells;
-    const squareCells = currentBoard.squares[square].cells;
-
-    rowCells.forEach((rowCell) => {
-      if (rowCell !== cell) {
-        rowCell.removePossibleValue(val);
-      }
-    });
-    columnCells.forEach((columnCell) => {
-      if (columnCell !== cell) {
-        columnCell.removePossibleValue(val);
-      }
-    });
-    squareCells.forEach((squareCell) => {
-      console.log("square", squareCell.cellRef);
-
-      if (squareCell !== cell) {
-        squareCell.removePossibleValue(val);
-      }
-    });
-  }
-
-  function solve() {
-    let currentIteration = 0;
-    // while (!currentBoard.isBoardComplete()) {
-    let cells = currentBoard.getAllCellsWithLowestEntropy();
-    if (cells.length === 0) {
-      currentBoard.saveCurrentState();
-      return;
-    }
-
-    if (cells.length > 1 && cells[0].possibleValues.length >= 1) {
-      propagateUpdate(cells[0], cells[0].possibleValues[0]);
-    } else if (cells.length === 1 && cells[0].possibleValues.length !== 0) {
-      const cell = cells[0];
-      if (!cell.possibleValues[0]) {
-        currentBoard.saveCurrentState();
-
-        return;
-      }
-      propagateUpdate(cell, cell.possibleValues[0]);
-    }
-
-    currentBoard.saveCurrentState();
-
-    currentIteration++;
-    if (currentIteration > 100) {
-      alert("no solution");
-      return;
-      // }
-    }
-  }
-
+  //Instatiate and populate board with empty cells
   useEffect(() => {
-    const zerosBoard = generateZerosBoard();
-    setCurrentBoard(zerosBoard);
+    // Create an array with 9 arrays in it
+    const rows = [[], [], [], [], [], [], [], [], []];
+    const cols = [[], [], [], [], [], [], [], [], []];
+    const squares = [[], [], [], [], [], [], [], [], []];
+    // Create 81 cells into an array
+    for (let x = 0; x < 9; x++) {
+      for (let y = 0; y < 9; y++) {
+        const initialVal = easy[x][y];
+        const index = x * 9 + y;
+        const sqIndex =
+          Math.floor((index % 9) / 3) + 3 * Math.floor(index / 27);
+        const newCell = new cell(y, x, y, x, sqIndex);
+        rows[y].push(newCell);
+        cols[x].push(newCell);
+        squares[sqIndex].push(newCell);
+        newCell.setValue(initialVal);
+      }
+    }
+
+    // Create 9 rows from the relevant cells
+    const rowRefs = [];
+    const colRefs = [];
+    const sqRefs = [];
+    for (let x = 0; x < 9; x++) {
+      rowRefs.push(new row(rows[x]));
+      colRefs.push(new column(cols[x]));
+      sqRefs.push(new square(squares[x]));
+    }
+
+    // Create a new board from the above data
+    const newBoard = new board(rowRefs, colRefs, sqRefs);
+    // propogate update for all cells
+    newBoard.rows.forEach((row) => {
+      row.cells.forEach((cell) => {
+        newBoard.propagateUpdates(cell, cell.value);
+      });
+    });
+
+    // Update possible values for all cells
+
+    setCurrentBoard(newBoard);
   }, []);
 
-  useEffect(() => {
-    if (currentBoard && !setupStarted) {
-      setSetupStarted(true);
-      setupInitialBoard();
+  function iterate() {
+    let iterationBoard = currentBoard.getBoardClone();
+    if (iterationBoard.isBoardComplete()) {
+      alert("Board SOLVED!");
+      return;
     }
-  }, [currentBoard]);
 
-  function findCellInBoardObject(x, y) {
-    return currentBoard.getCell(x, y);
-  }
+    // Get the lowest entropy cell
+    // If there are multiple, pick the first one
+    const { x: selectedX, y: selectedY } =
+      iterationBoard.getLowestEntropyCellLoc();
+    const lowestEntropyCell = iterationBoard.getCell({
+      x: selectedX,
+      y: selectedY,
+    });
+    if (lowestEntropyCell === null) {
+      alert("Board unsolveable");
+      return;
+    }
 
-  function setupInitialBoard() {
-    // First Row
-    propagateUpdate(findCellInBoardObject(0, 1), 6);
-    propagateUpdate(findCellInBoardObject(0, 3), 9);
-    propagateUpdate(findCellInBoardObject(0, 7), 8);
-    // Second Row
-    propagateUpdate(findCellInBoardObject(1, 3), 3);
-    propagateUpdate(findCellInBoardObject(1, 8), 2);
-    // Third Row
-    propagateUpdate(findCellInBoardObject(2, 0), 4);
-    propagateUpdate(findCellInBoardObject(2, 2), 2);
-    propagateUpdate(findCellInBoardObject(2, 8), 3);
-    // Fourth Row
-    propagateUpdate(findCellInBoardObject(3, 2), 4);
-    propagateUpdate(findCellInBoardObject(3, 4), 3);
-    propagateUpdate(findCellInBoardObject(3, 3), 2);
-    // Fifth Row
-    propagateUpdate(findCellInBoardObject(4, 0), 5);
-    propagateUpdate(findCellInBoardObject(4, 4), 8);
-    propagateUpdate(findCellInBoardObject(4, 8), 1);
-    // Sixth Row
-    propagateUpdate(findCellInBoardObject(5, 4), 6);
-    propagateUpdate(findCellInBoardObject(5, 5), 1);
-    propagateUpdate(findCellInBoardObject(5, 6), 5);
-    // Seventh Row
-    propagateUpdate(findCellInBoardObject(6, 0), 2);
-    propagateUpdate(findCellInBoardObject(6, 6), 3);
-    propagateUpdate(findCellInBoardObject(6, 8), 5);
-    // Eighth Row
-    propagateUpdate(findCellInBoardObject(7, 0), 9);
-    propagateUpdate(findCellInBoardObject(7, 5), 4);
-    // Ninth Row
-    propagateUpdate(findCellInBoardObject(8, 1), 7);
-    propagateUpdate(findCellInBoardObject(8, 5), 3);
-    propagateUpdate(findCellInBoardObject(8, 7), 9);
-    currentBoard.printBoardToConsoleByRow();
-  }
+    // Get the possible values for the cell
+    const possibleValues = lowestEntropyCell.getPossibleValues();
+    // If there are no possible values, return
+    if (possibleValues.length === 0) {
+      alert("Board unsolveable");
+      return;
+    }
 
-  function getHeatmapColour(entropy) {
-    // Return a hex value between black and white depending on the entropy
-    const heatmapColour = Math.floor(255 * (1 - entropy / 10)).toString(16);
-    return `#${heatmapColour}${heatmapColour}${heatmapColour}`;
+    // Pop off the top value from the possible values array
+    // and save a separate copy of the board to restore later
+    const restoreState = iterationBoard.getBoardClone();
+    // Remove the selected possible value from the relevant cell on the iterationState
+    let attemptedCollapsedCell = restoreState.getCell({
+      x: selectedX,
+      y: selectedY,
+    });
+
+    attemptedCollapsedCell.removePossibleValue(possibleValues[0]);
+
+    // Onlyadd a state reference to the stack if the cell
+    // has entropy of 1 or higher
+    if (attemptedCollapsedCell.entropy > 0) {
+      setCurrentStateStack(currentStateStack.getClone());
+      currentStateStack.push(restoreState);
+    }
+
+    // Propagate the update to the relevant cells
+    iterationBoard.propagateUpdates(lowestEntropyCell, possibleValues[0]);
+
+    // Recurse if the board can't continue or total entprpy is 0
+    if (
+      !iterationBoard.canContinue() ||
+      iterationBoard.getTotalEntropy() === 0
+    ) {
+      // Restore the board to the last state
+      setCurrentBoard(currentStateStack.pop());
+      iterate();
+    } else {
+      setCurrentBoard(iterationBoard);
+      iterate();
+    }
   }
 
   return (
     <div>
-      <h1>Open up the console</h1>
-      <button onClick={solve}>Solve</button>
       <Card
         className="container"
         style={{
@@ -415,7 +142,9 @@ function App() {
       >
         <CardHeader title="Sudoku" />
         <CardContent>
-          <div className="container">
+          <div>
+            <button onClick={iterate}>Solve</button>
+
             <ul>
               {currentBoard &&
                 currentBoard.rows.map((row, idx) => {
@@ -425,7 +154,7 @@ function App() {
                       <li
                         id={cell.cellRef}
                         style={{
-                          backgroundColor: getHeatmapColour(cell.getEntropy()),
+                          backgroundColor: cell.backgroundColor,
                         }}
                       >
                         <span>{cell.value}</span>
