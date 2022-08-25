@@ -8,7 +8,7 @@ This app implements the wave function collapse algorithm to solve soduku's that 
 - Clone the repository locally
 - `cd` into the repository
 - run `npm start`
-- naviate to `localhost:3000` to view the sudoku board and solve the puzzle
+- navigate to `localhost:3000` to view the sudoku board and solve the puzzle
 
 ## Changing the puzzle
 
