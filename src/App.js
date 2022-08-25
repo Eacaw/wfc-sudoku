@@ -8,11 +8,13 @@ import { Card, CardContent, CardHeader } from "@mui/material";
 import { cell, row, column, square } from "./Classes/Cell";
 import { board } from "./Classes/Board";
 import { StateStack } from "./Classes/StateStack";
-import { easy } from "./SodukuPuzzles";
+import { easy, medium, hard, evil } from "./SodukuPuzzles";
 
 function App() {
   const [currentBoard, setCurrentBoard] = useState(null);
   const [currentStateStack, setCurrentStateStack] = useState(new StateStack());
+
+  const puzzle = evil;
 
   //Instatiate and populate board with empty cells
   useEffect(() => {
@@ -24,7 +26,7 @@ function App() {
     // Create all 81 cells
     for (let x = 0; x < 9; x++) {
       for (let y = 0; y < 9; y++) {
-        const initialVal = easy[x][y];
+        const initialVal = puzzle[x][y];
 
         const index = x * 9 + y;
         const sqIndex =
@@ -79,40 +81,35 @@ function App() {
       x: selectedX,
       y: selectedY,
     });
-    if (lowestEntropyCell === null) {
-      alert("Board unsolveable");
-      return;
+    if (lowestEntropyCell) {
+      // Get the possible values for the cell
+      const possibleValues = lowestEntropyCell.getPossibleValues();
+      // If there are no possible values, return
+      if (possibleValues.length === 0) {
+        alert("Board unsolveable");
+        return;
+      }
+
+      // Pop off the top value from the possible values array
+      // and save a separate copy of the board to restore later
+      const restoreState = iterationBoard.getBoardClone();
+      // Remove the selected possible value from the relevant cell on the iterationState
+      let attemptedCollapsedCell = restoreState.getCell({
+        x: selectedX,
+        y: selectedY,
+      });
+
+      attemptedCollapsedCell.removePossibleValue(possibleValues[0]);
+
+      // Only add a state reference to the stack if the cell
+      // has entropy of 1 or higher
+      if (attemptedCollapsedCell.getEntropy() > 0) {
+        currentStateStack.push(restoreState);
+      }
+
+      // Propagate the update to the relevant cells
+      iterationBoard.propagateUpdates(lowestEntropyCell, possibleValues[0]);
     }
-
-    // Get the possible values for the cell
-    const possibleValues = lowestEntropyCell.getPossibleValues();
-    // If there are no possible values, return
-    if (possibleValues.length === 0) {
-      alert("Board unsolveable");
-      return;
-    }
-
-    // Pop off the top value from the possible values array
-    // and save a separate copy of the board to restore later
-    const restoreState = iterationBoard.getBoardClone();
-    // Remove the selected possible value from the relevant cell on the iterationState
-    let attemptedCollapsedCell = restoreState.getCell({
-      x: selectedX,
-      y: selectedY,
-    });
-
-    attemptedCollapsedCell.removePossibleValue(possibleValues[0]);
-
-    // Onlyadd a state reference to the stack if the cell
-    // has entropy of 1 or higher
-    if (attemptedCollapsedCell.entropy > 0) {
-      setCurrentStateStack(currentStateStack.getClone());
-      currentStateStack.push(restoreState);
-    }
-
-    // Propagate the update to the relevant cells
-    iterationBoard.propagateUpdates(lowestEntropyCell, possibleValues[0]);
-
     // Recurse if the board can't continue or total entprpy is 0
     if (
       !iterationBoard.canContinue() ||
@@ -162,7 +159,7 @@ function App() {
                           backgroundColor: cell.backgroundColor,
                         }}
                       >
-                        <span>{cell.value}</span>
+                        <span>{cell.value ? cell.value : " "}</span>
                       </li>
                     );
                   });
