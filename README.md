@@ -36,4 +36,5 @@ Once you have your new puzzle array set up, you can then import it on line 11 in
 - Update the UI to include puzzle input for the client
 - Make the UI actually palateable 
 - Fix the issue with more sparesely populated boards
+  - Minor update on this, debugging looks like it's related to the state stack not being properly filled, and the depth first search isn't being completed correctly, further investigation/planning required. 
 - Refactor such that the algorithm can be lifted out into another application.
