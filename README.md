@@ -31,3 +31,9 @@ Once you have your new puzzle array set up, you can then import it on line 11 in
 
 <img width="484" alt="Screenshot 2022-08-25 at 08 48 46" src="https://user-images.githubusercontent.com/24251551/186606722-df531136-48ee-4e75-9539-aee4766eac41.png">
 
+## Planned updates
+
+- Update the UI to include puzzle input for the client
+- Make the UI actually palateable 
+- Fix the issue with more sparesely populated boards
+- Refactor such that the algorithm can be lifted out into another application.
